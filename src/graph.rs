@@ -1,12 +1,16 @@
 // graph.rs
 
+// use crate::graph::ListOfEdges;
+
+
+
 #[derive(Debug)]
 pub struct Graph {
     n: usize,
     outedges: Vec<Vec<usize>>,
 }
 
-type ListOfEdges = Vec<(usize, usize)>;
+pub type ListOfEdges = Vec<(usize, usize)>;
 
 impl Graph {
     pub fn add_directed_edges(&mut self, edges: &ListOfEdges) {
