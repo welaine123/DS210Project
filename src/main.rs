@@ -1,3 +1,5 @@
+//main.rs
+
 mod graph;
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -5,8 +7,7 @@ use std::error::Error;
 use std::fs::File;
 use csv::{ReaderBuilder, StringRecord};
 use graph::Graph;
-use std::collections::BTreeMap;
-// use crate::graph::ListOfEdges
+
 
 
 fn process_airports_file(path: &str) -> Result<HashMap<String, String>, Box<dyn Error>> {
@@ -30,14 +31,15 @@ fn process_airports_file(path: &str) -> Result<HashMap<String, String>, Box<dyn 
                             "IATA" => names.push(field.to_string()),
                             _ => {
                                 //Columns that are not needed
-                                println!("Unknown column: {} - Value: {}", column_name, field);
+                                // println!("Unknown column: {} - Value: {}", column_name, field);
                             }
                         }
                     } else {
                         println!("Column name is missing for field: {}", field);
                     }
                 }
-                airport_code_to_name.insert(names[0].to_string(), names[1].to_string());
+                airport_code_to_name.insert(names[1].to_string(), names[0].to_string());
+
             }
             Err(err) => panic!("Error reading CSV record: {}", err),
         }
@@ -66,7 +68,7 @@ fn process_route_file(path: &str) -> Result<HashSet<(String, String)>, Box<dyn E
                             "Source airport" => names.push(field.to_string()),
                             "Destination airport" => names.push(field.to_string()),
                             _ => {
-                                println!("Unknown column: {} - Value: {}", column_name, field);
+                                // println!("Unknown column: {} - Value: {}", column_name, field);
                             }
                         }
                     } else {
@@ -95,6 +97,8 @@ fn map_airports_to_integers(
             next_int += 1;
             current
         });
+
+        // let dst_int = *airport_to_int.entry(dst.clone()).or_insert_with(|| src_int);
         let dst_int = *airport_to_int.entry(dst.clone()).or_insert_with(|| {
             let current = next_int;
             next_int += 1;
@@ -124,25 +128,80 @@ fn map_integers_to_airport_names(
 }
 
 
+
+
+
 fn main() -> Result<(), Box<dyn Error>> {
 
-    let routes = process_route_file("routes.csv")?;
-    let airport_code_to_name = process_airports_file("airports.csv")?;
-    println!("Airport codes to names: {:?}", airport_code_to_name);
     
+    let routes = match process_route_file("routes.csv") {
+        Ok(routes) => routes,
+        Err(e) => {
+            eprintln!("Failed to process routes file: {}", e);
+            return Err(e);
+        }
+    };
+
+    let airports = match process_airports_file("airports.csv") {
+        Ok(airports) => airports,
+        Err(e) => {
+            eprintln!("Failed to process airports file: {}", e);
+            return Err(e);
+        }
+    };
+
+    // Mapping airport names to integers and create unique pairs
     let (airport_to_int, int_routes) = map_airports_to_integers(&routes);
-    println!("Airport to integer mapping: {:?}", airport_to_int);
-    println!("Integer routes: {:?}", int_routes);
-    
-    let int_to_airport_name = map_integers_to_airport_names(&airport_to_int, &airport_code_to_name);
-    println!("Integer to airport name mapping: {:?}", int_to_airport_name);
 
-    // // Create the graph
-    // let numeric_edges: graph::ListOfEdges = numeric_route_data.iter().map(|&pair| pair).collect();
-    // let graph = Graph::create_directed(airport_name_to_number.len(), &numeric_edges);
+    let directed_graph = Graph::create_directed(airport_to_int.len(), &int_routes);
+    println!("Directed Graph: {:?}", directed_graph);
 
-    // // Print the graph
-    // println!("Graph: {:?}", graph);
+    let centrality = (&directed_graph).compute_degree_centrality();
+
+    // Mapping integers back to airport names
+    let int_to_airport_name = map_integers_to_airport_names(&airport_to_int, &airports);
+
+    // Collecting centrality results into a vector and sort it
+    let mut centrality_vec: Vec<(&String, &usize)> = centrality.iter()
+    .filter_map(|(int, centrality)| {
+        if let Some(name) = int_to_airport_name.get(int) {
+            Some((name, centrality))
+        } else {
+            None // Skip this entry if no name is found
+        }
+    })
+    .collect();
+
+    centrality_vec.sort_by(|a, b| b.1.cmp(a.1));
+
+    // Finally, print the result of top 10 airports that connet most nodes
+    println!("Top 10 Airports by Degree Centrality:");
+    for (airport, centrality) in centrality_vec.iter().take(10) {
+        println!("{}: {}", airport, centrality);
+
+    }
 
     Ok(())
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn create_sample_airports_file() -> std::io::Result<()> {
+        use std::io::Write;
+        let mut file = std::fs::File::create("sample_airports.csv")?;
+        writeln!(file, "index,Airport ID,Name,City,Country,IATA,ICAO,Latitude,Longitude,Altitude,Timezone,DST,Tz database time zone,Type,Source")?;
+        writeln!(file, "0,1,Sample Airport,Sample City,Sample Country,SPL,SPLC,0.0,0.0,0,0,U,UTC,airport,OurAirports")?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_process_airports_file() {
+        create_sample_airports_file().unwrap();
+
+        let result = process_airports_file("sample_airports.csv").unwrap();
+        assert_eq!(result.get("SPL").unwrap(), "Sample Airport");
+    }
 }

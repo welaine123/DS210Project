@@ -1,16 +1,14 @@
 // graph.rs
+use std::collections::HashMap;
 
-// use crate::graph::ListOfEdges;
-
-
+pub type Edge = (usize, usize);
+pub type ListOfEdges = Vec<Edge>;
 
 #[derive(Debug)]
 pub struct Graph {
-    n: usize,
-    outedges: Vec<Vec<usize>>,
+    pub n: usize,
+    pub outedges: Vec<Vec<usize>>,
 }
-
-pub type ListOfEdges = Vec<(usize, usize)>;
 
 impl Graph {
     pub fn add_directed_edges(&mut self, edges: &ListOfEdges) {
@@ -35,14 +33,11 @@ impl Graph {
         g
     }
 
-    pub fn create_undirected(n: usize, edges: &ListOfEdges) -> Graph {
-        let mut g = Self::create_directed(n, edges);
-        g.add_directed_edges(&reverse_edges(edges));
-        g.sort_graph_lists();
-        g
+    pub fn compute_degree_centrality(&self) -> HashMap<usize, usize> {
+        let mut centrality = HashMap::new();
+        for (node, edges) in self.outedges.iter().enumerate() {
+            centrality.insert(node, edges.len());
+        }
+        centrality
     }
-}
-
-fn reverse_edges(edges: &ListOfEdges) -> ListOfEdges {
-    edges.iter().map(|&(u, v)| (v, u)).collect()
 }

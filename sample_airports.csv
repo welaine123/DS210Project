@@ -1,0 +1,2 @@
+index,Airport ID,Name,City,Country,IATA,ICAO,Latitude,Longitude,Altitude,Timezone,DST,Tz database time zone,Type,Source
+0,1,Sample Airport,Sample City,Sample Country,SPL,SPLC,0.0,0.0,0,0,U,UTC,airport,OurAirports
