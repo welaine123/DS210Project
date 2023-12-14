@@ -154,7 +154,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     let (airport_to_int, int_routes) = map_airports_to_integers(&routes);
 
     let directed_graph = Graph::create_directed(airport_to_int.len(), &int_routes);
-    println!("Directed Graph: {:?}", directed_graph);
 
     let centrality = (&directed_graph).compute_degree_centrality();
 
@@ -177,7 +176,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Finally, print the result of top 10 airports that connet most nodes
     println!("Top 10 Airports by Degree Centrality:");
     for (airport, centrality) in centrality_vec.iter().take(10) {
-        println!("{}: {}", airport, centrality);
+        println!("{}: {} connections", airport, centrality);
 
     }
 
